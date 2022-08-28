@@ -7,6 +7,12 @@
     <title>Chat</title>
 </head>
 <body>
+    <h1>Chat with: </h1>
+    <ul>
+        {% for room in rooms %}
+        <li><a href="{% url 'room' room.name %}">{{room.name}}</a></li>
+        {% endfor %}
+    </ul>
     What chat room would like to enter? <br>
     <input type="text" id="room-name-input" size="100">
     <input type="button" id="room-name-submit" value="Enter">

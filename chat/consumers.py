@@ -3,10 +3,12 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.http import JsonResponse
 
-from .models import Message
+from .models import Message, Room
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
+        self.user = self.scope['user']
+        print(self.user)
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = 'chat_%s' % self.room_name
 
@@ -29,18 +31,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         print("receive() called")
         text_data_json = json.loads(text_data)
-        message = text_data_json['message']
+        message_body = text_data_json['message']
 
         # save message to database
-        await self.save_message(message, self.room_name)
-        
+       
+        message = await self.save_message(message_body)
+    
         # Send message to room group
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'chat_message',
-                'message': message,
-                'notification': 'new message'
+                'message': message.body,
+                'sender': message.sender.username,
             }
         )
 
@@ -48,17 +51,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def chat_message(self, event):
         print("chat_message() called", event)
         message = event['message']
-        notification = event['notification']
+        sender = event['sender']
 
         # Send message to WebSocket
         await self.send(text_data=json.dumps({
             'message': message,
-            'notification': notification,
+            'sender': sender
         }))
 
     
     # database methods
     @database_sync_to_async
-    def save_message(self, message_body, room):
-        message = Message.objects.create(body=message_body, room=room)
+    def save_message(self, message_body):
+        room = Room.objects.get(name=self.room_name)
+        message = Message.objects.create(sender=self.user, body=message_body, room=room)
         print("message saved")
+        return message

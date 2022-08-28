@@ -7,6 +7,7 @@
     <title>Room</title>
 </head>
 <body>
+    <h1>{{room_name}}</h1>
     <h5 id="notification"></h1>
     <textarea id="chat-log" cols="100" rows="20"></textarea><br>
     <input type="text" id="chat-message-input" type="text" size="100"><br>
@@ -16,7 +17,8 @@
 
     {% for message in messages %}
         <script>
-            document.querySelector("#chat-log").value += ("{{message.body}}" + '\n');
+            
+            document.querySelector("#chat-log").value += ("{{message.sender.username}}: "+"{{message.body}}" + '\n');
         </script>
     {% endfor %}
 
@@ -34,10 +36,9 @@
 
         chatSocket.onmessage = function(e){
             const data = JSON.parse(e.data);
-            document.querySelector("#chat-log").value += (data.message + '\n');
+            let message = `${data.sender}: ${data.message}`
+            document.querySelector("#chat-log").value += (message + '\n');
             
-            document.querySelector("#notification").innerText = data.notification;
-            console.log(document.querySelector("#notification").innerText);
         }
 
         chatSocket.onclose = function(e) {
